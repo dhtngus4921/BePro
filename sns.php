@@ -5,9 +5,10 @@
     }
     mysqli_query($con, "utf8");
     $userEmail = $_POST["userEmail"];
+    $snsName = $_POST["snsName"];
 
-    $statement = mysqli_prepare($con, "select * from user where user_email in (?)");
-    mysqli_stmt_bind_param($statement, "s", $userEmail);
+    $statement = mysqli_prepare($con, "select * from user where user_type in (?) and user_email in (?)");
+    mysqli_stmt_bind_param($statement, "ss", $snsName, $userEmail);
     mysqli_stmt_execute($statement);
 
     mysqli_stmt_store_result($statement);
