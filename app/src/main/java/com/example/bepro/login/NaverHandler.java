@@ -99,7 +99,7 @@ public class NaverHandler extends OAuthLoginHandler {
                         Intent intent = new Intent(activity, MainActivity.class);
                         intent.putExtra("userImage", jsonObject.getString("profile_image"));
                         intent.putExtra("userEmail", jsonObject.getString("email"));
-                        intent.putExtra("userNick", jsonObject.getString("nickname"));
+                        intent.putExtra("userType", "naver");
                         activity.startActivity(intent);
                 }
             } catch (Exception e) {

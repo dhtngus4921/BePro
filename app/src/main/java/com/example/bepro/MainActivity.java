@@ -1,6 +1,8 @@
 package com.example.bepro;
 
+import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -18,9 +20,13 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.toolbox.Volley;
 import com.example.bepro.home.FoodItems;
 import com.example.bepro.home.HomeActivity;
 import com.example.bepro.home.SelfAddItemAdapter;
+import com.example.bepro.login.snsRequest;
 import com.example.bepro.my_page.MyPageActivity;
 import com.example.bepro.notice.NoticeActivity;
 import com.example.bepro.recipe.RecipeActivity;
@@ -28,6 +34,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
 
 import org.jetbrains.annotations.NotNull;
+import org.json.JSONObject;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -44,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private Dialog mAddItemDialog, mFridgeListDialog, mFridgeAddDialog, mSelfAddDialog;
     private Button mAddCancelBtn, mFridgeListCancelBtn, mFridgeAddCancelBtn, mSelfAddCancelBtn, mSelfItemAddBtn;
 
-    public String image, nick, email;
+    public String image, email, type;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,8 +64,8 @@ public class MainActivity extends AppCompatActivity {
         //로그인 데이터 받아오기
         Intent intent = getIntent();
         image = intent.getStringExtra("userImage");
-        nick = intent.getStringExtra("userNick");
         email = intent.getStringExtra("userEmail");
+        type = intent.getStringExtra("userType");
 
         //fragment 객체 생성
         mHome = new HomeActivity();
@@ -69,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
         //마이페이지에 받아온 데이터 넣기
         mMyPage.imageUrl = image;
         mMyPage.userEmail = email;
-        mMyPage.userNick = nick;
+        mMyPage.userType = type;
 
         //dialog 초기화
         mAddItemDialog = new Dialog(MainActivity.this);
@@ -268,5 +275,4 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
 }

@@ -69,14 +69,6 @@ public class LoginActivity extends AppCompatActivity {
         autologin = (CheckBox) findViewById(R.id.autologin);
         saveid = (CheckBox) findViewById(R.id.saveid);
 
-        //카카오 자동 로그인 (단말 토큰_kakaologin)
-        kakaologin = Session.getCurrentSession().checkAndImplicitOpen();
-
-        if(kakaologin){
-            Toast.makeText(getApplicationContext(), "카카오톡 자동 로그인", Toast.LENGTH_SHORT).show();
-            Session.getCurrentSession().checkAndImplicitOpen();
-        }
-
         //카카오 로그인 버튼
         kakao.setOnClickListener(new Button.OnClickListener() {
             @Override
@@ -96,7 +88,7 @@ public class LoginActivity extends AppCompatActivity {
 
         //네이버 JSON 에서 가져온 USER 정보
         userData = getSharedPreferences("userData", MODE_PRIVATE);
-        userNICK = userData.getString("nickname", "");
+        userNICK = userData.getString("nickname", "") + "의 네이버";
         userEMAIL = userData.getString("email", "");
         userImage = userData.getString("profile_image", "");
 
@@ -106,7 +98,7 @@ public class LoginActivity extends AppCompatActivity {
             Intent intent = new Intent(getApplicationContext(), MainActivity.class);
             intent.putExtra("userImage", userImage);
             intent.putExtra("userEmail", userEMAIL);
-            intent.putExtra("userNick", userNICK);
+            intent.putExtra("userType", "naver");
             startActivity(intent);
             Toast.makeText(getApplicationContext(), "네이버 자동 로그인", Toast.LENGTH_SHORT).show();
             finish();
@@ -120,7 +112,6 @@ public class LoginActivity extends AppCompatActivity {
                         @Override
                         public void run(boolean success) {
                             if (success) {
-                                System.out.println("요기로");
                                 //네이버 핸들러 (로그인, 사용자 데이터 호출)
                                 NaverHandler naver = new NaverHandler(LoginActivity.this, mOAuthLoginModule, LoginActivity.this);
                                 naver.run(true);
@@ -154,7 +145,7 @@ public class LoginActivity extends AppCompatActivity {
             userPassword = password;
             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
             intent.putExtra("userEmail", userEmail);
-            intent.putExtra("userNick", nick);
+            intent.putExtra("userType", "normal");
             startActivity(intent);
             Toast.makeText(getApplicationContext(), "자동 로그인되었습니다.", Toast.LENGTH_SHORT).show();
         }
@@ -163,6 +154,13 @@ public class LoginActivity extends AppCompatActivity {
         if(idSet != "" && pwdSet != ""){
             email.setText(idSet);
             pwd.setText(pwdSet);
+        }
+
+        //카카오 자동 로그인 (단말 토큰_kakaologin)
+        kakaologin = Session.getCurrentSession().checkAndImplicitOpen();
+        if(kakaologin){
+            Toast.makeText(getApplicationContext(), "카카오톡 자동 로그인", Toast.LENGTH_SHORT).show();
+            Session.getCurrentSession().checkAndImplicitOpen();
         }
 
         loginSetting();
@@ -207,7 +205,7 @@ public class LoginActivity extends AppCompatActivity {
                                 Toast.makeText(getApplicationContext(), "로그인에 성공했습니다.", Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                                 intent.putExtra("userEmail", userEmail);
-                                intent.putExtra("userNick", nick);
+                                intent.putExtra("userType", "normal");
                                 startActivity(intent);
                             }else{
                                 if(userEmail.isEmpty() || userPassword.isEmpty()) {
@@ -308,7 +306,7 @@ public class LoginActivity extends AppCompatActivity {
                 //로그인에 성공했을 때, MeV2Response에 로그인한 유저의 정보를 담고 있음.
                 @Override
                 public void onSuccess(MeV2Response result) {
-                    userNICK = result.getNickname();
+                    userNICK = result.getNickname() + "의 카카오";
                     userEMAIL = result.getKakaoAccount().getEmail();
                     userType = "kakao";
                     userPWD = "kakao";
@@ -346,7 +344,7 @@ public class LoginActivity extends AppCompatActivity {
                     }
                     Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                     intent.putExtra("userImage", result.getProfileImagePath());
-                    intent.putExtra("userNick", userNICK);
+                    intent.putExtra("userType", "kakao");
                     intent.putExtra("userEmail", userEMAIL);
                     startActivity(intent);
                     finish();
