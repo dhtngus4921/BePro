@@ -7,8 +7,9 @@ import com.android.volley.toolbox.StringRequest;
 import java.util.HashMap;
 import java.util.Map;
 
+//이미지 수정
 public class ImageChangeRequest extends StringRequest{
-    final static private String URL = "http://192.168.0.17:81/image.php";
+    final static private String URL = "http://3.37.119.236:80/login/image.php";
     private Map<String, String> map;
 
     public ImageChangeRequest(String userImage, String userNick, Response.Listener<String> listener){

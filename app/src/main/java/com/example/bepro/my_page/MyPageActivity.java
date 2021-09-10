@@ -9,6 +9,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.DocumentsContract;
@@ -34,6 +35,7 @@ import android.widget.Toast;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
@@ -64,6 +66,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.text.BreakIterator;
 import java.util.Objects;
 import android.provider.ContactsContract;
 
@@ -79,12 +82,13 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
     Spinner mSpinner;
     EditText pwcpw, editPw, editNickname;
     ImageView image;
-    TextView id, nick;
+    public TextView id, nick;
     TextView memEMAIL;
     private ArrayAdapter<String> adapter;
     ViewGroup rootView;
     OAuthLogin mOAuthLoginModule; //네이버 로그인 토큰 관리
     public String imageUrl, userEmail, userNick, userType, userPassword, newPassword, newNick, dbImage;
+    public int index;
     Dialog dialog;
     boolean success = false;
     private static final int RESULT_CODE = 0;
@@ -92,12 +96,13 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
     // @NonNull : null 허용하지 않음
     // @Nullable : null 허용
     //onCreateView(): fragment가 자신의 UI를 처음으로 그릴 때 호출됨
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         rootView = (ViewGroup) inflater.inflate(R.layout.my_page, container, false);
         super.onCreate(savedInstanceState);
-        getUser();
 
+        //단말파일 데이터
         PrefsHelper.init(getActivity());
 
         //네이버 로그인 개발자 접속
@@ -117,23 +122,47 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
             }
         }
 
-        image = rootView.findViewById(R.id.userImage);
-
-        //이미지를 눌렀을 때
-        image.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent();
-                intent.setType("image/*");
-                intent.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(intent, RESULT_CODE);
-            }
-        });
-
+        //계정 정보 아이디, 별명
         id = rootView.findViewById(R.id.Id);
         nick = rootView.findViewById(R.id.Nick);
         id.setText(userEmail);
+        nick.setText(userNick);
 
+        image = rootView.findViewById(R.id.userImage);
+        System.out.println("디비 이미지" + dbImage);
+        System.out.println("이미지" + imageUrl);
+
+        if(dbImage != "null") Glide.with(getContext()).load(dbImage).into(image);
+        else if(imageUrl == null) image.setImageResource(R.drawable.ic_baseline_person_outline_24);
+        else new DownloadFilesTask().execute(imageUrl);
+
+        //계정 정보 프로필 수정
+        image.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                builder.setTitle("프로필 수정");
+                builder.setMessage("수정하시겠습니까?");
+                builder.setPositiveButton("확인", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent();
+                        intent.setType("image/*");
+                        intent.setAction(Intent.ACTION_GET_CONTENT);
+                        startActivityForResult(intent, RESULT_CODE);
+                    }
+                });
+                builder.setNegativeButton("취소", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.create().show();
+            }
+        });
+
+        //회원 정보 수정 이메일
         memEMAIL = rootView.findViewById(R.id.memEMAIL);
         memEMAIL.setText(userEmail);
 
@@ -150,7 +179,6 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
                 mSpinner.setEnabled(isChecked);
             }
         });
-
 
         adapter = new ArrayAdapter<String>(
                 getActivity(), android.R.layout.simple_spinner_item, items);
@@ -173,7 +201,8 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
         return rootView;
     }
 
-    //이미지 처리
+
+    //이미지 처리 (url)
     private class DownloadFilesTask extends AsyncTask<String,Void, Bitmap> {
         @Override
         protected Bitmap doInBackground(String... strings) {
@@ -295,9 +324,12 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
         int vId = v.getId();
         switch (vId) {
             case R.id.editBtn:
+                //계정 정보 수정 버튼
                 mPwcLayout.setVisibility(View.VISIBLE);
+                if(userPassword.equals(userType)) pwcpw.setText(userPassword);
                 break;
             case R.id.pwcOkBtn:
+                //비밀번호 확인 버튼
                 boolean pwdCheck = pwcpw.getText().toString().equals(userPassword);
                 if (pwdCheck) {
                     mPwcLayout.setVisibility(View.GONE);
@@ -312,20 +344,24 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
                 }
                 break;
             case R.id.pwcCancel:
+                //계정 정보 수정 취소 버튼
                 mPwcLayout.setVisibility(View.GONE);
                 break;
             case R.id.editOkBtn:
+                //수정 완료 버튼
                 editNickname.setText(null);
                 editPw.setText(null);
                 userNick = newNick;
                 mEditLayout.setVisibility(View.GONE);
                 break;
             case R.id.newNickCh:
+                //별명 중복체크
                 newNick = editNickname.getText().toString();
                 getUser(newNick);
                 nick.setText(newNick);
                 break;
             case R.id.newPwCh:
+                //비번 수정
                 newPassword = editPw.getText().toString();
                 Response.Listener<String> newNickR = new Response.Listener<String>() {
                     @Override
@@ -340,44 +376,35 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
                 Toast.makeText(getActivity(), "비밀번호가 변경되었습니다.", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.logoutBtn:
-                //로그아웃
+                //로그아웃 버튼
                 mLogoutLayout.setVisibility(View.VISIBLE);
-
                 break;
             case R.id.lgyBtn:
                 //로그아웃 (예)
                 mLogoutLayout.setVisibility(View.GONE);
                 if(userType.equals("kakao")){
                     //카카오톡 단말 토큰 삭제 (테스트용) -> 로그아웃 구현 시 사용
-                    UserManagement.getInstance()
-                            .requestLogout(new LogoutResponseCallback() {
-                                @Override
-                                public void onCompleteLogout() {
-                                    System.out.println("카카오 로그아웃");
-                                }
-                            });
-                    Intent logout = new Intent(getActivity(), LoginActivity.class);
-                    Toast.makeText(getActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show();
-                    startActivity(logout);
-                    break;
+                    UserManagement.getInstance().requestLogout(new LogoutResponseCallback() {
+                        @Override
+                        public void onCompleteLogout() {
+                            Toast.makeText(getActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 }else if(userType.equals("naver")){
                     System.out.println("네이버 로그아웃");
                     //네이버 토큰 삭제(테스트용) -> 로그아웃 구현 시 사용
                     mOAuthLoginModule.logout(getActivity());
-                    Intent logout = new Intent(getActivity(), LoginActivity.class);
-                    Toast.makeText(getActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show();
-                    startActivity(logout);
-                    break;
                 }else{
                     //자동로그인 단말 파일 삭제
                     PrefsHelper.remove("userEmail");
                     PrefsHelper.remove("userPassword");
-                    Intent logout = new Intent(getActivity(), LoginActivity.class);
-                    Toast.makeText(getActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show();
-                    startActivity(logout);
-                    break;
                 }
+                Intent logout = new Intent(getActivity(), LoginActivity.class);
+                Toast.makeText(getActivity(), "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show();
+                startActivity(logout);
+                break;
             case R.id.lgnBtn:
+                //로그아웃 (아니오)
                 mLogoutLayout.setVisibility(View.GONE);
                 break;
             case R.id.deleteBtn:
@@ -431,10 +458,12 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
                 startActivity(intent);
                 break;
             case R.id.dlnBtn:
+                //계정 삭제 (아니오)
                 mDeleteLayout.setVisibility(View.GONE);
         }
     }
 
+    //이미지 수정 처리 (DB, url)
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -465,6 +494,7 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
         queue.add(imageChangeRequest);
     }
 
+    //별명 중복 확인 리스너
     public void getUser(String nickname){
         Response.Listener<String> responseListener = new Response.Listener<String>() {
             @Override
@@ -505,6 +535,7 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
         queue.add(snsRequest);
     }
 
+    //회원 정보 가져오기 리스너
     public void getUser(){
         Response.Listener<String> responseListener = new Response.Listener<String>() {
             @Override
@@ -516,8 +547,9 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
                     nick.setText(userNick);
                     userPassword = jsonObject.getString("userPassword");
                     dbImage = jsonObject.getString("userImg");
+                    index = jsonObject.getInt("userIDX");
 
-                    System.out.println(dbImage + imageUrl);
+                    System.out.println(dbImage + imageUrl + index);
                     if(dbImage != "null") Glide.with(getContext()).load(dbImage).into(image);
                     else if(imageUrl == null) image.setImageResource(R.drawable.ic_baseline_person_outline_24);
                     else new DownloadFilesTask().execute(imageUrl);
@@ -529,7 +561,7 @@ public class MyPageActivity extends Fragment implements View.OnClickListener {
             }
         };
         snsRequest snsRequest = new snsRequest(userType, userEmail, responseListener);
-        RequestQueue queue = Volley.newRequestQueue(getActivity());
+        RequestQueue queue = Volley.newRequestQueue(getContext());
         queue.add(snsRequest);
     }
 }
